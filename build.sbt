@@ -10,7 +10,7 @@ scalacOptions ++= Seq(
   "-feature"
 )
 
-val sparkVersion = "2.1.0"
+val sparkVersion = "2.3.2" //2.1.0
 
 resolvers ++= Seq(
   "bintray-spark-packages" at "https://dl.bintray.com/spark-packages/maven/",
