@@ -2,7 +2,7 @@ organization := "com.github.catalystcode"
 name := "streaming-rss-html"
 description := "A library for reading public RSS feeds and public websites using Spark Streaming."
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.8"
 
 scalacOptions ++= Seq(
   "-unchecked",
