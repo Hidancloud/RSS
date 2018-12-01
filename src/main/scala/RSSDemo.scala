@@ -15,7 +15,7 @@ import org.apache.spark.sql.types.IntegerType
 object RSSDemo {
   def main(args: Array[String]) {
     println("Beginning")
-    val durationSeconds = 60 //60
+    val durationSeconds = 60
     val conf = new SparkConf().setAppName("RSS Spark Application").setIfMissing("spark.master", "local[*]")
     val sc = new SparkContext(conf)
     val ssc = new StreamingContext(sc, Seconds(durationSeconds))
@@ -59,7 +59,12 @@ object RSSDemo {
         ans += i(1)
       }
     }
-    return ans
+    var fin_ans = ""
+    val arr1 = ans.split("#")
+    for (e1 <- arr1) {
+      fin_ans += e1
+    }
+    return fin_ans
   }
 
   def createPredictionModel(spark: SparkSession): Unit = {
