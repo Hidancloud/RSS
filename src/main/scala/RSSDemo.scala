@@ -12,6 +12,11 @@ import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
 
 import org.apache.spark.sql.types.IntegerType
 
+import org.apache.spark.sql.functions._
+
+import org.apache.spark.sql.functions.udf
+
+
 object RSSDemo {
   def main(args: Array[String]) {
     println("Beginning")
@@ -69,15 +74,75 @@ object RSSDemo {
 
   def createPredictionModel(spark: SparkSession): Unit = {
 
+
     var training_data = spark.read.format("csv")
       .option("header", "true")
       .load("hdfs:///Sentiment/twitter/train.csv")
       .toDF("id", "label", "text")
 
+    val remove_dublicates:  (String) => String = (str) => {
+
+      val sb = new StringBuilder()
+      sb.append(' ')
+      var lastchar = ' '
+      var flag = false
+
+      str.foreach(c => {
+        if (!flag) {
+          if (c == '!') {
+            sb.append(" ! ")
+            lastchar = '!'
+
+          } else {
+            if (c == '.') {
+              sb.append(" . ")
+              lastchar = '.'
+            }else {
+              if (c == '@'){
+                flag = true
+                lastchar = '@'
+              }
+            }
+          }
+
+          if (lastchar != c) {
+            sb.append(c)
+            lastchar = c
+          }
+        }else{
+          if (c == ' '){
+            flag = false
+            lastchar = ' '
+            sb.append(lastchar)
+          }
+        }
+
+
+
+      })
+
+
+      sb.toString()
+
+
+    }
+
+    val removeUDF = udf(remove_dublicates)
+
 
     training_data = training_data.withColumn("labelData", training_data("label").cast(IntegerType))
       .drop("label")
       .withColumnRenamed("labelData", "label")
+
+    training_data = training_data.withColumn("text2", lower(col("text")))
+
+    training_data = training_data.withColumn("new_text", removeUDF(training_data("text2")))
+
+    training_data = training_data.drop("text2").drop("text")
+
+    training_data = training_data.withColumnRenamed("new_text", "text")
+
+    //    val Array(training, test) = training_data.randomSplit(Array(0.98, 0.02), seed = 1)
 
 
     val tokenizer = new Tokenizer()
@@ -85,7 +150,7 @@ object RSSDemo {
       .setOutputCol("words")
 
     val hashingTF = new HashingTF()
-      .setNumFeatures(1000)
+      .setNumFeatures(3000)
       .setInputCol(tokenizer.getOutputCol)
       .setOutputCol("features")
 
@@ -98,9 +163,37 @@ object RSSDemo {
       .setStages(Array(tokenizer, hashingTF, lr))
 
     val model = pipeline.fit(training_data)
+    //    val model = pipeline.fit(training)
 
     model.write.overwrite().save("hdfs:///kazan/lr_model")
 
+
+    //
+    //    var trues = 0.0
+    //    var all = 0.0
+    //
+    //    model.transform(test)
+    //      .select("id", "label", "prediction")
+    //      .collect()
+    //      .foreach { case Row(id: String, label: Integer, prediction: Double) => {
+    //        if (label == prediction.toInt) {
+    //          trues = trues + 1
+    //        }
+    //        all = all + 1
+    //
+    //        println(s"$id, label=$label, prediction=$prediction")
+    //      }
+    //      }
+    //
+    //    println("---------------------------------------------------")
+    //
+    //    print(trues/all)
+    //    println("---------------------------------------------------")
+
+
+
+
   }
+
 
 }
